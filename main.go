@@ -17,6 +17,12 @@ type NewDogReq struct {
 	Details string `json:"details" binding:"required"`
 }
 
+type UpdateDogReq struct {
+	Name    string `json:"name" binding:"-"`
+	Owner   string `json:"owner" binding:"-"`
+	Details string `json:"details" binding:"-"`
+}
+
 func main() {
 	router := gin.Default()
 
@@ -32,12 +38,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		dog, err := dogs.NewDog(req.Name, req.Owner, req.Details)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
+		dog := dogs.NewDog(req.Name, req.Owner, req.Details)
 		c.JSON(http.StatusOK, gin.H{"ID": dog.ID})
 	})
 
@@ -50,16 +51,34 @@ func main() {
 		}
 		dog, found := dogs.LoadDog(req.ID)
 		if !found {
-			c.String(http.StatusNotFound, fmt.Sprintf("Dog %d not found", req))
-		} else {
-			c.JSON(http.StatusOK, dog)
+			c.String(http.StatusNotFound, fmt.Sprintf("Dog %d not found", req.ID))
+			return
 		}
+		c.JSON(http.StatusOK, dog)
 	})
 
 	// Update a specific dog
 	router.PUT("/dogs/:id", func(c *gin.Context) {
-		c.String(http.StatusOK, "Dogs")
-		// ID := c.Param("id")
+		// Get the id
+		var req DogReq
+		if err := c.ShouldBindUri(&req); err != nil {
+			c.JSON(400, gin.H{"msg": err})
+			return
+		}
+		ID := req.ID
+		var updateReq UpdateDogReq
+		if err := c.ShouldBindJSON(&updateReq); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		dog, found := dogs.LoadDog(req.ID)
+		// Get any updates
+		if !found {
+			c.String(http.StatusNotFound, fmt.Sprintf("Dog %d not found", ID))
+			return
+		}
+		dog = dogs.UpdateDog(dog, updateReq.Name, updateReq.Owner, updateReq.Details)
+		c.JSON(http.StatusOK, dog)
 	})
 
 	// Delete a dog

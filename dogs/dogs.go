@@ -15,12 +15,14 @@ type Dog struct {
 
 var DogFile = "dogs.json"
 
-func NewDog(name, owner, details string) (Dog, error) {
+func NewDog(name, owner, details string) Dog {
 	currentDogs := LoadDogs()
 	var ID int
 	// Cheap auto inc ID
 	for _, dog := range currentDogs {
-		ID = dog.ID
+		if dog.ID > ID {
+			ID = dog.ID
+		}
 	}
 	ID++
 	newDog := Dog{
@@ -29,15 +31,9 @@ func NewDog(name, owner, details string) (Dog, error) {
 		Owner:   owner,
 		Details: details,
 	}
-	log.Printf(name)
-	log.Printf(owner)
-	log.Printf(details)
 	currentDogs = append(currentDogs, newDog)
-	err := WriteDogs(currentDogs)
-	if err != nil {
-		return newDog, err
-	}
-	return newDog, nil
+	WriteDogs(currentDogs)
+	return newDog
 }
 
 // Load all the dogs
@@ -67,14 +63,32 @@ func LoadDog(ID int) (Dog, bool) {
 }
 
 // Write Dogs to our json file
-func WriteDogs(dogs []Dog) error {
-	json, err := json.MarshalIndent(dogs, "", "\t")
-	if err != nil {
-		return err
+func WriteDogs(dogs []Dog) {
+	json, _ := json.MarshalIndent(dogs, "", "\t")
+	_ = ioutil.WriteFile(DogFile, json, 0644)
+}
+
+// Update a dog
+func UpdateDog(dog Dog, name, owner, details string) Dog {
+	if name != "" {
+		dog.Name = name
 	}
-	err = ioutil.WriteFile(DogFile, json, 0644)
-	if err != nil {
-		return err
+	if owner != "" {
+		dog.Owner = owner
 	}
-	return nil
+	if details != "" {
+		dog.Details = details
+	}
+	dogs := LoadDogs()
+	var index int
+	for i, d := range dogs {
+		if d.ID == dog.ID {
+			index = i
+		}
+	}
+	dogs = append(dogs[:index], dogs[index+1:]...)
+	dogs = append(dogs, dog)
+
+	WriteDogs(dogs)
+	return dog
 }
