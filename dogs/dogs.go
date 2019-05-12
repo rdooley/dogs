@@ -92,3 +92,16 @@ func UpdateDog(dog Dog, name, owner, details string) Dog {
 	WriteDogs(dogs)
 	return dog
 }
+
+// Delete a dog
+func DeleteDog(ID int) {
+	dogs := LoadDogs()
+	var index int
+	for i, d := range dogs {
+		if d.ID == ID {
+			index = i
+		}
+	}
+	dogs = append(dogs[:index], dogs[index+1:]...)
+	WriteDogs(dogs)
+}

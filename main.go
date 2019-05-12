@@ -46,7 +46,7 @@ func main() {
 	router.GET("/dogs/:id", func(c *gin.Context) {
 		var req DogReq
 		if err := c.ShouldBindUri(&req); err != nil {
-			c.JSON(400, gin.H{"msg": err})
+			c.JSON(http.StatusBadRequest, gin.H{"msg": err})
 			return
 		}
 		dog, found := dogs.LoadDog(req.ID)
@@ -62,7 +62,7 @@ func main() {
 		// Get the id
 		var req DogReq
 		if err := c.ShouldBindUri(&req); err != nil {
-			c.JSON(400, gin.H{"msg": err})
+			c.JSON(http.StatusBadRequest, gin.H{"msg": err})
 			return
 		}
 		ID := req.ID
@@ -71,8 +71,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		dog, found := dogs.LoadDog(req.ID)
-		// Get any updates
+		dog, found := dogs.LoadDog(ID)
 		if !found {
 			c.String(http.StatusNotFound, fmt.Sprintf("Dog %d not found", ID))
 			return
@@ -83,8 +82,20 @@ func main() {
 
 	// Delete a dog
 	router.DELETE("/dogs/:id", func(c *gin.Context) {
-		c.String(http.StatusOK, "Dogs")
-		// ID := c.Param("id")
+		// Get the id
+		var req DogReq
+		if err := c.ShouldBindUri(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+			return
+		}
+		_, found := dogs.LoadDog(req.ID)
+		if !found {
+			c.String(http.StatusNotFound, fmt.Sprintf("Dog %d not found", req.ID))
+			return
+		}
+		dogs.DeleteDog(req.ID)
+
+		c.String(http.StatusOK, fmt.Sprintf("Dog %d deleted", req.ID))
 	})
 
 	// Run the thing on 8080
